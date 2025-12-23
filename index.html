@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>PopClick World</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #111;
+    color: white;
+}
+#cat {
+    font-size: 150px;
+    cursor: pointer;
+    user-select: none;
+}
+select {
+    padding: 5px;
+    font-size: 16px;
+}
+table {
+    margin: 20px auto;
+    border-collapse: collapse;
+}
+td, th {
+    border: 1px solid white;
+    padding: 8px 15px;
+}
+</style>
+</head>
+<body>
+
+<h1>🐱 PopClick World</h1>
+
+<label>Vyber stát:</label>
+<select id="country">
+    <option value="CZ">🇨🇿 Česko</option>
+    <option value="SK">🇸🇰 Slovensko</option>
+    <option value="DE">🇩🇪 Německo</option>
+    <option value="US">🇺🇸 USA</option>
+</select>
+
+<h2>Skóre: <span id="score">0</span></h2>
+
+<div id="cat">😺</div>
+
+<h2>🏆 Leaderboard</h2>
+<table>
+<thead>
+<tr><th>#</th><th>Skóre</th></tr>
+</thead>
+<tbody id="leaderboard"></tbody>
+</table>
+
+<script>
+let score = 0;
+const scoreEl = document.getElementById("score");
+const leaderboardEl = document.getElementById("leaderboard");
+const countrySelect = document.getElementById("country");
+
+function getData() {
+    return JSON.parse(localStorage.getItem("leaderboards")) || {};
+}
+
+function saveData(data) {
+    localStorage.setItem("leaderboards", JSON.stringify(data));
+}
+
+function updateLeaderboard() {
+    const data = getData();
+    const country = countrySelect.value;
+    const scores = (data[country] || []).sort((a,b)=>b-a).slice(0,10);
+
+    leaderboardEl.innerHTML = "";
+    scores.forEach((s,i)=>{
+        leaderboardEl.innerHTML += `<tr><td>${i+1}</td><td>${s}</td></tr>`;
+    });
+}
+
+document.getElementById("cat").onclick = () => {
+    score++;
+    scoreEl.textContent = score;
+
+    const data = getData();
+    const country = countrySelect.value;
+
+    if (!data[country]) data[country] = [];
+    data[country][0] = Math.max(data[country][0] || 0, score);
+
+    saveData(data);
+    updateLeaderboard();
+};
+
+countrySelect.onchange = () => {
+    score = 0;
+    scoreEl.textContent = 0;
+    updateLeaderboard();
+};
+
+updateLeaderboard();
+</script>
+
+</body>
+</html>
