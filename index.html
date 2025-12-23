@@ -3,78 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <title>PopClick World</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: #111;
+    height: 100vh;
+    background: radial-gradient(circle at top, #222, #000);
     color: white;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+#game {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#score {
+    font-size: 4rem;
+    margin-bottom: 10px;
 }
 #cat {
-    font-size: 150px;
+    font-size: 28vw;
     cursor: pointer;
     user-select: none;
+    transition: transform 0.05s;
 }
-select {
-    padding: 5px;
-    font-size: 16px;
+#cat:active {
+    transform: scale(0.95);
+}
+#country {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+#leaderboard {
+    width: 100%;
+    max-height: 30vh;
+    background: rgba(0,0,0,0.8);
+    border-top: 2px solid #333;
+    overflow-y: auto;
 }
 table {
-    margin: 20px auto;
+    width: 100%;
     border-collapse: collapse;
 }
-td, th {
-    border: 1px solid white;
-    padding: 8px 15px;
+th, td {
+    padding: 10px;
+    text-align: center;
+}
+th {
+    background: #111;
+    position: sticky;
+    top: 0;
 }
 </style>
 </head>
 <body>
 
-<h1>🐱 PopClick World</h1>
+<div id="game">
+    <div id="score">0</div>
+    <div id="cat">😺</div>
+    <div id="country">🌍 Načítám stát…</div>
+</div>
 
-<label>Vyber stát:</label>
-<select id="country">
-    <option value="CZ">🇨🇿 Česko</option>
-    <option value="SK">🇸🇰 Slovensko</option>
-    <option value="DE">🇩🇪 Německo</option>
-    <option value="US">🇺🇸 USA</option>
-</select>
-
-<h2>Skóre: <span id="score">0</span></h2>
-
-<div id="cat">😺</div>
-
-<h2>🏆 Leaderboard</h2>
+<div id="leaderboard">
 <table>
 <thead>
-<tr><th>#</th><th>Skóre</th></tr>
+<tr>
+<th>#</th>
+<th>Vlajka</th>
+<th>Stát</th>
+<th>Skóre</th>
+</tr>
 </thead>
-<tbody id="leaderboard"></tbody>
+<tbody id="board"></tbody>
 </table>
+</div>
 
 <script>
 let score = 0;
+let countryName = "Unknown";
+let countryCode = "UN";
+
 const scoreEl = document.getElementById("score");
-const leaderboardEl = document.getElementById("leaderboard");
-const countrySelect = document.getElementById("country");
+const boardEl = document.getElementById("board");
+const countryEl = document.getElementById("country");
+
+function flagEmoji(code) {
+    return code
+        .toUpperCase()
+        .replace(/./g, c => 
+            String.fromCodePoint(127397 + c.charCodeAt())
+        );
+}
+
+fetch("https://ipapi.co/json/")
+.then(res => res.json())
+.then(data => {
+    countryName = data.country_name || "Unknown";
+    countryCode = data.country_code || "UN";
+    countryEl.textContent = `${flagEmoji(countryCode)} ${countryName}`;
+    updateBoard();
+});
 
 function getData() {
-    return JSON.parse(localStorage.getItem("leaderboards")) || {};
+    return JSON.parse(localStorage.getItem("popclickScores")) || {};
 }
 
 function saveData(data) {
-    localStorage.setItem("leaderboards", JSON.stringify(data));
+    localStorage.setItem("popclickScores", JSON.stringify(data));
 }
 
-function updateLeaderboard() {
+function updateBoard() {
     const data = getData();
-    const country = countrySelect.value;
-    const scores = (data[country] || []).sort((a,b)=>b-a).slice(0,10);
+    const list = Object.entries(data)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,10);
 
-    leaderboardEl.innerHTML = "";
-    scores.forEach((s,i)=>{
-        leaderboardEl.innerHTML += `<tr><td>${i+1}</td><td>${s}</td></tr>`;
+    boardEl.innerHTML = "";
+    list.forEach((item,i)=>{
+        boardEl.innerHTML += `
+        <tr>
+            <td>${i+1}</td>
+            <td>${flagEmoji(item[0].slice(0,2).toUpperCase())}</td>
+            <td>${item[0]}</td>
+            <td>${item[1]}</td>
+        </tr>`;
     });
 }
 
@@ -83,22 +144,13 @@ document.getElementById("cat").onclick = () => {
     scoreEl.textContent = score;
 
     const data = getData();
-    const country = countrySelect.value;
-
-    if (!data[country]) data[country] = [];
-    data[country][0] = Math.max(data[country][0] || 0, score);
+    data[countryName] = Math.max(data[countryName] || 0, score);
 
     saveData(data);
-    updateLeaderboard();
+    updateBoard();
 };
 
-countrySelect.onchange = () => {
-    score = 0;
-    scoreEl.textContent = 0;
-    updateLeaderboard();
-};
-
-updateLeaderboard();
+updateBoard();
 </script>
 
 </body>
