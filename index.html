@@ -2,75 +2,79 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<title>PopClick World</title>
+<title>PopClick World v3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+    height:100vh;
+    background:linear-gradient(180deg,#0f0f0f,#000);
+    color:#fff;
+    font-family:system-ui,Arial,sans-serif;
+    display:flex;
+    flex-direction:column;
 }
-body {
-    height: 100vh;
-    background: radial-gradient(circle at top, #222, #000);
-    color: white;
-    font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
+header{
+    text-align:center;
+    padding:20px;
+    font-size:2rem;
+    font-weight:700;
 }
-#game {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+#game{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
 }
-#score {
-    font-size: 4rem;
-    margin-bottom: 10px;
+#score{
+    font-size:4rem;
+    margin-bottom:10px;
 }
-#cat {
-    font-size: 28vw;
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.05s;
+#cat{
+    font-size:26vw;
+    cursor:pointer;
+    user-select:none;
+    transition:transform .05s;
 }
-#cat:active {
-    transform: scale(0.95);
+#cat:active{transform:scale(.93)}
+#country{
+    margin-top:10px;
+    font-size:1.3rem;
+    opacity:.85;
 }
-#country {
-    margin-top: 10px;
-    font-size: 1.2rem;
-    opacity: 0.8;
+#leaderboard{
+    background:#050505;
+    border-top:2px solid #222;
+    max-height:30vh;
+    overflow:auto;
 }
-#leaderboard {
-    width: 100%;
-    max-height: 30vh;
-    background: rgba(0,0,0,0.8);
-    border-top: 2px solid #333;
-    overflow-y: auto;
+table{
+    width:100%;
+    border-collapse:collapse;
 }
-table {
-    width: 100%;
-    border-collapse: collapse;
+th,td{
+    padding:12px;
+    text-align:center;
 }
-th, td {
-    padding: 10px;
-    text-align: center;
+th{
+    background:#111;
+    position:sticky;
+    top:0;
 }
-th {
-    background: #111;
-    position: sticky;
-    top: 0;
+tr:nth-child(even){
+    background:#0c0c0c;
 }
 </style>
 </head>
 <body>
 
+<header>🐱 PopClick World</header>
+
 <div id="game">
     <div id="score">0</div>
     <div id="cat">😺</div>
-    <div id="country">🌍 Načítám stát…</div>
+    <div id="country">Načítám stát…</div>
 </div>
 
 <div id="leaderboard">
@@ -89,65 +93,62 @@ th {
 
 <script>
 let score = 0;
-let countryName = "Unknown";
-let countryCode = "UN";
+let myCountry = "Unknown";
+let myCode = "UN";
 
 const scoreEl = document.getElementById("score");
 const boardEl = document.getElementById("board");
 const countryEl = document.getElementById("country");
 
-function flagEmoji(code) {
-    return code
-        .toUpperCase()
-        .replace(/./g, c => 
-            String.fromCodePoint(127397 + c.charCodeAt())
-        );
+function flag(code){
+    return code.toUpperCase().replace(/./g,
+        c=>String.fromCodePoint(127397+c.charCodeAt())
+    );
 }
 
 fetch("https://ipapi.co/json/")
-.then(res => res.json())
-.then(data => {
-    countryName = data.country_name || "Unknown";
-    countryCode = data.country_code || "UN";
-    countryEl.textContent = `${flagEmoji(countryCode)} ${countryName}`;
+.then(r=>r.json())
+.then(d=>{
+    myCountry = d.country_name || "Unknown";
+    myCode = d.country_code || "UN";
+    countryEl.textContent = `${flag(myCode)} ${myCountry}`;
     updateBoard();
 });
 
-function getData() {
-    return JSON.parse(localStorage.getItem("popclickScores")) || {};
+function load(){
+    return JSON.parse(localStorage.getItem("popclick"))||{};
+}
+function save(d){
+    localStorage.setItem("popclick",JSON.stringify(d));
 }
 
-function saveData(data) {
-    localStorage.setItem("popclickScores", JSON.stringify(data));
-}
-
-function updateBoard() {
-    const data = getData();
-    const list = Object.entries(data)
-        .sort((a,b)=>b[1]-a[1])
+function updateBoard(){
+    const data = load();
+    const arr = Object.entries(data)
+        .sort((a,b)=>b[1].score-a[1].score)
         .slice(0,10);
 
-    boardEl.innerHTML = "";
-    list.forEach((item,i)=>{
-        boardEl.innerHTML += `
+    boardEl.innerHTML="";
+    arr.forEach((e,i)=>{
+        boardEl.innerHTML+=`
         <tr>
             <td>${i+1}</td>
-            <td>${flagEmoji(item[0].slice(0,2).toUpperCase())}</td>
-            <td>${item[0]}</td>
-            <td>${item[1]}</td>
+            <td>${flag(e[1].code)}</td>
+            <td>${e[0]}</td>
+            <td>${e[1].score}</td>
         </tr>`;
     });
 }
 
-document.getElementById("cat").onclick = () => {
+document.getElementById("cat").onclick=()=>{
     score++;
-    scoreEl.textContent = score;
-
-    const data = getData();
-    data[countryName] = Math.max(data[countryName] || 0, score);
-
-    saveData(data);
-    updateBoard();
+    scoreEl.textContent=score;
+    const data=load();
+    if(!data[myCountry]||score>data[myCountry].score){
+        data[myCountry]={score:score,code:myCode};
+        save(data);
+        updateBoard();
+    }
 };
 
 updateBoard();
